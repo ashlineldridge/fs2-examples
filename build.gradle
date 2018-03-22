@@ -1,0 +1,64 @@
+apply plugin: 'scala'
+
+group = 'com.example'
+version = '0.0.1'
+
+ext {
+    awsVersion = '1.11.241'
+    catsVersion = '1.0.1'
+    catsEffectVersion = '0.9'
+    fs2Version = '0.10.2'
+    circeVersion = '0.9.1'
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+configurations {
+    scalaCompiler
+}
+
+configurations.scalaCompiler.transitive = false
+
+configurations.all {
+    exclude group: 'commons-logging', module: 'commons-logging'
+    exclude group: 'log4j', module: 'log4j'
+    exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+}
+
+dependencies {
+    compile "org.scala-lang:scala-library:${scalaVersion}"
+    compile "com.typesafe:config:1.3.0"
+    compile "ch.qos.logback:logback-classic:1.2.3"
+    compile "org.slf4j:jcl-over-slf4j:1.7.22"
+    compile "org.slf4j:log4j-over-slf4j:1.7.22"
+
+    compile "com.amazonaws:aws-java-sdk-s3:${awsVersion}"
+
+    compile "org.typelevel:cats-core_${scalaBuildVersion}:${catsVersion}"
+    compile "org.typelevel:cats-effect_${scalaBuildVersion}:${catsEffectVersion}"
+    compile "co.fs2:fs2-core_${scalaBuildVersion}:${fs2Version}"
+    compile "co.fs2:fs2-io_${scalaBuildVersion}:${fs2Version}"
+    compile "com.typesafe.scala-logging:scala-logging_${scalaBuildVersion}:3.7.2"
+    compile "com.github.pureconfig:pureconfig_${scalaBuildVersion}:0.8.0"
+    compile "org.spire-math:kind-projector_${scalaBuildVersion}:0.9.4"
+    compile "io.circe:circe-core_${scalaBuildVersion}:${circeVersion}"
+    compile "io.circe:circe-generic_${scalaBuildVersion}:${circeVersion}"
+    compile "io.circe:circe-parser_${scalaBuildVersion}:${circeVersion}"
+
+    scalaCompiler "org.scalamacros:paradise_${scalaVersion}:2.1.1"
+    scalaCompiler "org.spire-math:kind-projector_${scalaBuildVersion}:0.9.4"
+}
+
+def scalaCompileOptions = ['-feature', '-language:implicitConversions', '-language:higherKinds']
+project.configurations.scalaCompiler.files.each { scalaCompileOptions += "-Xplugin:${it.path}".toString() }
+compileScala.scalaCompileOptions.additionalParameters = scalaCompileOptions
+compileTestScala.scalaCompileOptions.additionalParameters = scalaCompileOptions
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.6'
+    distributionType = Wrapper.DistributionType.ALL
+}
+
