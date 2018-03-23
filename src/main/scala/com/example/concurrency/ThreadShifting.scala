@@ -7,7 +7,8 @@ import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.ExecutionContext
 
-// Not FS2 specific but an example of shifting threads
+// Not FS2 specific but an example of shifting threads -
+// idea taken from here: https://typelevel.org/blog/2017/05/02/io-monad-for-cats.html
 object ThreadShifting extends App with LazyLogging {
 
   val DefaultThreadPool = ExecutionContext.fromExecutor(null)
