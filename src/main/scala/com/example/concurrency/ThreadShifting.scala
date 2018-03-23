@@ -12,19 +12,21 @@ import scala.concurrent.ExecutionContext
 // Idea taken from here: https://typelevel.org/blog/2017/05/02/io-monad-for-cats.html
 object ThreadShifting extends App with LazyLogging {
 
-  implicit val DefaultThreadPool = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(2, new NamedThreadFactory("default-thread-pool-")))
-  val BlockingIoThreadPool = ExecutionContext.fromExecutor(Executors.newCachedThreadPool(new NamedThreadFactory("blocking-io-thread-pool-")))
+  val defaultThreadPool = Executors.newFixedThreadPool(2, new NamedThreadFactory("default-thread-pool-"))
+  val blockingIoThreadPool = Executors.newCachedThreadPool(new NamedThreadFactory("blocking-io-thread-pool-"))
+  implicit val defaultExecutionContext = ExecutionContext.fromExecutor(defaultThreadPool)
+  val blockingIoExecutionContext = ExecutionContext.fromExecutor(blockingIoThreadPool)
 
   class Worker(id: Int) {
     def run: Stream[IO, Unit] =
       Stream.eval(
         for {
-          _ <- IO(logger.info(s"#${id}: Starting..."))
-          _ <- IO.shift(BlockingIoThreadPool)
-          _ <- IO(logger.info(s"#${id}: Some long running IO operation..."))
+          _ <- IO(logger.info(s"#$id: Starting..."))
+          _ <- IO.shift(blockingIoExecutionContext)
+          _ <- IO(logger.info(s"#$id: Some long running IO operation..."))
           _ <- IO(Thread.sleep(2000))
-          _ <- IO.shift(DefaultThreadPool)
-          _ <- IO(logger.info(s"#${id}: Some CPU bound operation"))
+          _ <- IO.shift(defaultExecutionContext)
+          _ <- IO(logger.info(s"#$id: Some CPU bound operation"))
           _ <- IO(Thread.sleep(500))
         } yield ())
   }
@@ -33,10 +35,17 @@ object ThreadShifting extends App with LazyLogging {
     .map(new Worker(_))
     .map(_.run)
     .join(3)
+    .onFinalize(shutdown)
     .compile
     .drain
     .flatMap(_ => IO(logger.info("Done")))
-    .unsafeRunSync
+    .unsafeRunSync()
+
+  private def shutdown: IO[Unit] =
+    IO {
+      defaultThreadPool.shutdown()
+      blockingIoThreadPool.shutdown()
+    }
 }
 
 // Adapted from Executors.DefaultThreadFactory so that we can control
