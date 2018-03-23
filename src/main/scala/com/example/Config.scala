@@ -1,4 +1,4 @@
-package com.example.fs2
+package com.example
 
 import java.time.ZonedDateTime
 
